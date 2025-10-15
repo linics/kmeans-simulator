@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>K-Means 互动课件 | Phase 1 Layout</title>
+<!-- ===== Styles ===== -->
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg-main: #f5f6fa;
+    --bg-panel: #ffffff;
+    --bg-accent: #eef2ff;
+    --text-primary: #1e1e2f;
+    --text-secondary: #3d3d52;
+    --border-color: #d0d4e4;
+    --accent: #4c6ef5;
+    --focus-outline: #ff922b;
+    --tab-bg: #f0f3ff;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Microsoft YaHei", sans-serif;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body:focus-visible {
+    outline: none;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--bg-panel);
+    box-shadow: 0 2px 8px rgba(30, 46, 90, 0.08);
+    padding: 1.2rem 1.6rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  header h1 {
+    margin: 0 0 0.4rem;
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+
+  .intro-text {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .usage-banner {
+    margin-top: 0.8rem;
+    padding: 0.8rem 1rem;
+    background: var(--bg-accent);
+    border-radius: 12px;
+    font-size: 0.9rem;
+  }
+
+  .top-controls {
+    margin-top: 1.4rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .control-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .control-block label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .control-block select,
+  .control-block input,
+  .control-block button {
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    font-size: 0.95rem;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+  }
+
+  button.icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-weight: 600;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--focus-outline);
+    outline-offset: 2px;
+  }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr) 340px;
+    gap: 1rem;
+    padding: 1rem 1.5rem 1.5rem;
+  }
+
+  .panel {
+    background: var(--bg-panel);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 4px 18px rgba(30, 46, 90, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .controls-panel {
+    overflow-y: auto;
+  }
+
+  .canvas-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .canvas-wrapper {
+    flex: 1;
+    background: linear-gradient(135deg, rgba(76, 110, 245, 0.08), rgba(135, 206, 250, 0.12));
+    border-radius: 18px;
+    position: relative;
+    border: 1px dashed rgba(76, 110, 245, 0.3);
+  }
+
+  canvas#cluster-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 18px;
+  }
+
+  .canvas-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .metrics-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .metric-card {
+    background: var(--tab-bg);
+    padding: 0.8rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .metric-card strong {
+    font-size: 1rem;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .tabs button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 0.8rem 0.6rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+  }
+
+  .tabs button.active {
+    border-bottom-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .tab-content {
+    flex: 1;
+  }
+
+  .tab-pane {
+    display: none;
+  }
+
+  .tab-pane.active {
+    display: block;
+  }
+
+  .tab-pane section {
+    margin-bottom: 1rem;
+  }
+
+  .tab-pane h3 {
+    margin: 0 0 0.6rem;
+    font-size: 1.05rem;
+  }
+
+  .tab-pane p,
+  .tab-pane ul,
+  .tab-pane li {
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .quiz-question {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.9rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .quiz-question h4 {
+    margin: 0 0 0.6rem;
+    font-size: 0.98rem;
+  }
+
+  .quiz-options {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  footer {
+    margin-top: auto;
+    padding: 1rem 1.6rem 1.6rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  footer .footer-inner {
+    background: var(--bg-panel);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    box-shadow: 0 4px 18px rgba(30, 46, 90, 0.04);
+  }
+
+  .responsive-note {
+    display: none;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 1200px) {
+    main {
+      grid-template-columns: 280px minmax(0, 1fr);
+      grid-template-rows: auto auto;
+    }
+
+    .right-panel {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 960px) {
+    main {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .responsive-note {
+      display: block;
+      margin-top: 0.6rem;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header>
+    <h1>K-Means 互动实验室 · Interactive Lab</h1>
+    <p class="intro-text">分配→更新→重复：调整质心、让簇内更紧密。Assign → Update → Repeat: move centroids to minimize within-cluster variance.</p>
+    <div class="usage-banner" role="note">使用引导 / Quick Guide：先选择数据集与簇数，点击“运行”观察算法循环；需要学习内容请切换右侧标签页（概念 / 指标 / 小测 / 失效场景）。</div>
+    <div class="responsive-note">📱 横屏体验更佳 · Landscape mode recommended for tablets.</div>
+    <div class="top-controls" aria-label="top quick controls">
+      <div class="control-block" aria-label="dataset selector">
+        <label for="dataset-select">数据集 Dataset</label>
+        <select id="dataset-select" aria-label="选择数据集 Select dataset">
+          <option value="blobs">高斯团 Blobs</option>
+          <option value="moons">双月牙 Moons</option>
+          <option value="circles">同心环 Circles</option>
+          <option value="grid">网格 Grid</option>
+          <option value="custom">自定义 Custom</option>
+        </select>
+      </div>
+      <div class="control-block" aria-label="cluster count">
+        <label for="k-slider">簇数 k</label>
+        <input id="k-slider" type="range" min="1" max="10" value="3" aria-label="簇数 K slider" />
+        <input id="k-number" type="number" min="1" max="10" value="3" aria-label="簇数 K 数字" />
+      </div>
+      <div class="control-block" aria-label="initialization method">
+        <label for="init-select">初始化 Initialization</label>
+        <select id="init-select" aria-label="选择初始化方式">
+          <option value="random">随机 Random</option>
+          <option value="kpp">k-means++</option>
+          <option value="manual">手动 Manual</option>
+        </select>
+      </div>
+      <div class="control-block" aria-label="run controls">
+        <label>运行控制 Run Controls</label>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+          <button type="button" class="icon-btn primary" aria-label="运行 Run">▶ Run</button>
+          <button type="button" class="icon-btn" aria-label="暂停 Pause">⏸ Pause</button>
+          <button type="button" class="icon-btn" aria-label="单步 Step">⏭ Step</button>
+          <button type="button" class="icon-btn" aria-label="重置 Reset">↺ Reset</button>
+        </div>
+      </div>
+      <div class="control-block" aria-label="seed control">
+        <label for="seed-input">随机种子 Seed</label>
+        <div style="display:flex; gap:0.4rem;">
+          <input id="seed-input" type="number" value="42" aria-label="随机种子输入 Seed input" />
+          <button type="button" class="icon-btn" aria-label="随机骰子 Randomize">🎲</button>
+        </div>
+      </div>
+      <div class="control-block" aria-label="speed control">
+        <label for="speed-range">动画速度 Speed</label>
+        <input id="speed-range" type="range" min="0" max="100" value="60" aria-label="动画速度 slider" />
+      </div>
+      <div class="control-block" aria-label="help buttons">
+        <label>帮助 Help</label>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+          <button type="button" class="icon-btn" aria-label="帮助说明 Help">❓ Help</button>
+          <button type="button" class="icon-btn" aria-label="恢复默认 Reset defaults">🧹 Reset Defaults</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main>
+    <aside class="panel controls-panel" aria-label="详细控制面板 Detailed controls">
+      <section>
+        <h2>参数调节 Parameters</h2>
+        <div class="control-block">
+          <label for="distance-select">距离 Distance</label>
+          <select id="distance-select" aria-label="选择距离度量">
+            <option value="euclidean">欧氏 Euclidean</option>
+            <option value="manhattan">曼哈顿 Manhattan</option>
+          </select>
+        </div>
+        <div class="control-block">
+          <label for="max-iter">最大迭代 Max Iterations</label>
+          <input id="max-iter" type="number" value="50" min="1" aria-label="最大迭代次数" />
+        </div>
+        <div class="control-block">
+          <label for="point-count">点数量 Point Count</label>
+          <input id="point-count" type="number" value="600" min="10" max="3000" aria-label="点数量" />
+        </div>
+        <div class="control-block">
+          <label for="noise-slider">噪声 Noise Ratio</label>
+          <input id="noise-slider" type="range" min="0" max="0.3" step="0.01" value="0.05" aria-label="噪声比例" />
+        </div>
+        <fieldset style="border:1px solid var(--border-color); border-radius:12px; padding:0.8rem;">
+          <legend>可选视图 Options</legend>
+          <label><input type="checkbox" id="show-voronoi" /> 显示 Voronoi / Show Voronoi</label><br />
+          <label><input type="checkbox" id="show-trails" checked /> 质心轨迹 / Show Trails</label><br />
+          <label><input type="checkbox" id="show-labels" /> 标签 / Labels</label><br />
+          <label><input type="checkbox" id="show-heat" /> 热力背景 / Heatmap</label>
+        </fieldset>
+        <fieldset style="border:1px solid var(--border-color); border-radius:12px; padding:0.8rem;">
+          <legend>数据处理 Data Prep</legend>
+          <label><input type="checkbox" id="toggle-standardize" /> 标准化 / Standardize</label><br />
+          <label><input type="checkbox" id="toggle-outliers" /> 加入离群点 / Add Outliers</label>
+        </fieldset>
+      </section>
+      <section>
+        <h2>导入导出 Import & Export</h2>
+        <div class="control-block">
+          <label for="csv-input">CSV 数据粘贴区 Paste CSV</label>
+          <textarea id="csv-input" rows="6" aria-label="CSV 输入区域"></textarea>
+        </div>
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+          <button type="button" class="icon-btn" aria-label="导入 CSV">⬆ Import</button>
+          <button type="button" class="icon-btn" aria-label="导出 PNG">⬇ Export PNG</button>
+          <button type="button" class="icon-btn" aria-label="导出参数 JSON">{} Export JSON</button>
+        </div>
+        <p class="hint-text" aria-live="polite">示例：x,y\n1,2\n3,4</p>
+      </section>
+      <section>
+        <h2>AB 快照 AB Snapshots</h2>
+        <div class="snapshot-grid" aria-label="快照列表">
+          <div class="snapshot-placeholder" role="group" aria-label="快照槽位 snapshot slot">空 Empty</div>
+          <div class="snapshot-placeholder" role="group" aria-label="快照槽位 snapshot slot">空 Empty</div>
+          <div class="snapshot-placeholder" role="group" aria-label="快照槽位 snapshot slot">空 Empty</div>
+        </div>
+        <button type="button" class="icon-btn" aria-label="拍摄当前状态 Save snapshot">📸 Save Snapshot</button>
+      </section>
+    </aside>
+    <section class="panel canvas-panel" aria-label="主可视化区域 Main visualization">
+      <div class="canvas-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 style="margin:0; font-size:1.3rem;">聚类画布 Cluster Canvas</h2>
+          <p style="margin:0; font-size:0.9rem; color:var(--text-secondary);">拖拽质心、观察分配；Drag centroids and inspect assignments.</p>
+        </div>
+        <div class="status-chips" style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+          <span class="chip" aria-label="状态">状态：待初始化 · Ready</span>
+          <span class="chip" aria-label="收敛状态">收敛 Convergence：--</span>
+        </div>
+      </div>
+      <div class="canvas-wrapper" role="presentation">
+        <canvas id="cluster-canvas" width="900" height="600" aria-label="k-means 可视化画布"></canvas>
+        <div class="canvas-overlay">Phase 1：此处展示数据点与质心。Phase 1: Visualization canvas placeholder.</div>
+      </div>
+      <div class="metrics-bar" aria-label="实时指标">
+        <div class="metric-card" role="status">
+          <span>SSE 总和</span>
+          <strong id="metric-sse">--</strong>
+          <small>簇内平方和 Sum of Squared Errors</small>
+        </div>
+        <div class="metric-card" role="status">
+          <span>轮廓系数 Silhouette</span>
+          <strong id="metric-silhouette">--</strong>
+          <small>抽样估计 Sampled estimation</small>
+        </div>
+        <div class="metric-card" role="status">
+          <span>迭代 Iteration</span>
+          <strong id="metric-iteration">0</strong>
+          <small>最大迭代阈值 Max: 300</small>
+        </div>
+      </div>
+      <div class="mini-charts" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:0.8rem;">
+        <div class="mini-chart" style="background:var(--tab-bg); border-radius:12px; padding:0.8rem;">
+          <h3 style="margin:0 0 0.4rem; font-size:0.95rem;">损失曲线 Loss Curve</h3>
+          <div class="chart-placeholder" style="height:120px; border:1px dashed var(--border-color); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Mini Canvas</div>
+        </div>
+        <div class="mini-chart" style="background:var(--tab-bg); border-radius:12px; padding:0.8rem;">
+          <h3 style="margin:0 0 0.4rem; font-size:0.95rem;">肘部法 Elbow</h3>
+          <div class="chart-placeholder" style="height:120px; border:1px dashed var(--border-color); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Mini Canvas</div>
+        </div>
+        <div class="mini-chart" style="background:var(--tab-bg); border-radius:12px; padding:0.8rem;">
+          <h3 style="margin:0 0 0.4rem; font-size:0.95rem;">轮廓分布 Silhouette</h3>
+          <div class="chart-placeholder" style="height:120px; border:1px dashed var(--border-color); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Mini Canvas</div>
+        </div>
+      </div>
+    </section>
+    <aside class="panel right-panel" aria-label="学习与信息面板 Learning panel">
+      <div class="tabs" role="tablist">
+        <button class="active" role="tab" aria-selected="true" aria-controls="tab-concept" id="tab-btn-concept">概念 Concept</button>
+        <button role="tab" aria-controls="tab-metrics" id="tab-btn-metrics">指标 Metrics</button>
+        <button role="tab" aria-controls="tab-quiz" id="tab-btn-quiz">小测 Quiz</button>
+        <button role="tab" aria-controls="tab-fail" id="tab-btn-fail">失效 Failure Cases</button>
+      </div>
+      <div class="tab-content">
+        <div class="tab-pane active" id="tab-concept" role="tabpanel" aria-labelledby="tab-btn-concept">
+          <section>
+            <h3>算法流程 Algorithm Loop</h3>
+            <p>1. 随机初始化质心。2. 将点分配到最近质心。3. 更新质心位置。4. 重复直至收敛。</p>
+            <p>1. Initialize centroids. 2. Assign points to nearest centroid. 3. Update centroid mean. 4. Repeat until convergence.</p>
+          </section>
+          <section>
+            <h3>适用场景 Use Cases</h3>
+            <ul>
+              <li>簇近似球形。Roughly spherical clusters.</li>
+              <li>需要快速原型聚类。Rapid prototyping.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>局限性 Limitations</h3>
+            <ul>
+              <li>对初始值敏感。Sensitive to initialization.</li>
+              <li>不适合非凸簇。Not ideal for non-convex shapes.</li>
+              <li>离群点影响显著。Outliers can skew centroids.</li>
+            </ul>
+          </section>
+        </div>
+        <div class="tab-pane" id="tab-metrics" role="tabpanel" aria-labelledby="tab-btn-metrics">
+          <section>
+            <h3>SSE 簇内平方和</h3>
+            <p>度量每个簇内样本与质心的平方距离之和。值越小，聚类越紧凑。Measures total squared distance of points to centroid within each cluster.</p>
+          </section>
+          <section>
+            <h3>Silhouette 轮廓系数</h3>
+            <p>单点指标：(b - a) / max(a, b)。a 为簇内平均距离，b 为最近其他簇平均距离。Average silhouette 描述簇是否清晰。</p>
+          </section>
+          <section>
+            <h3>肘部法 Elbow Method</h3>
+            <p>绘制不同 k 的 SSE，寻找下降幅度转折点。Plot SSE vs k to find point of diminishing returns.</p>
+          </section>
+        </div>
+        <div class="tab-pane" id="tab-quiz" role="tabpanel" aria-labelledby="tab-btn-quiz">
+          <section>
+            <h3>知识小测 Quiz</h3>
+            <div class="quiz-question">
+              <h4>Q1: 肘部法建议的 k 值通常对应哪里？Where is elbow located?</h4>
+              <div class="quiz-options" role="group" aria-label="选项 Options">
+                <label><input type="radio" name="quiz-q1" /> 在下降曲线的拐点 At the elbow point.</label>
+                <label><input type="radio" name="quiz-q1" /> 最大的 k 值 Largest k.</label>
+                <label><input type="radio" name="quiz-q1" /> 曲线起点 Curve start.</label>
+              </div>
+            </div>
+            <div class="quiz-question">
+              <h4>Q2: 标准化的作用是什么？Why standardize?</h4>
+              <div class="quiz-options" role="group">
+                <label><input type="radio" name="quiz-q2" /> 消除量纲影响 Remove scale bias.</label>
+                <label><input type="radio" name="quiz-q2" /> 增加噪声 Increase noise.</label>
+                <label><input type="radio" name="quiz-q2" /> 减少样本数量 Reduce samples.</label>
+              </div>
+            </div>
+            <div class="quiz-question">
+              <h4>Q3: 对“Moons”数据，k-means 表现如何？How does k-means perform on moons?</h4>
+              <div class="quiz-options" role="group">
+                <label><input type="radio" name="quiz-q3" /> 效果较差，簇非凸 Poor due to non-convex clusters.</label>
+                <label><input type="radio" name="quiz-q3" /> 非常好 Very good.</label>
+                <label><input type="radio" name="quiz-q3" /> 无法运行 Cannot run.</label>
+              </div>
+            </div>
+            <div class="quiz-question">
+              <h4>Q4: 轮廓系数接近 -1 表示什么？What does silhouette near -1 mean?</h4>
+              <div class="quiz-options" role="group">
+                <label><input type="radio" name="quiz-q4" /> 样本更接近其他簇 Point closer to other cluster.</label>
+                <label><input type="radio" name="quiz-q4" /> 聚类完美 Perfect clustering.</label>
+                <label><input type="radio" name="quiz-q4" /> 样本孤立 Isolated point.</label>
+              </div>
+            </div>
+            <button type="button" class="primary" aria-label="提交测验 Submit quiz">提交 Submit</button>
+            <button type="button" aria-label="重新作答 Retake">重新作答 Retake</button>
+          </section>
+        </div>
+        <div class="tab-pane" id="tab-fail" role="tabpanel" aria-labelledby="tab-btn-fail">
+          <section>
+            <h3>何时失效 When It Fails</h3>
+            <ul>
+              <li>非凸数据（如 Moons）。Non-convex data (Moons).</li>
+              <li>簇密度差异大。Different densities.</li>
+              <li>离群点过多。Too many outliers.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>实践建议 Practical Tips</h3>
+            <ul>
+              <li>尝试多个随机种子。Try multiple seeds.</li>
+              <li>结合领域知识。Align with domain knowledge.</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </aside>
+  </main>
+  <section class="panel" style="margin:0 1.5rem 1.5rem;" aria-label="学习总结区域 Summary">
+    <h2>学习总结 Summary</h2>
+    <p>一键生成学习总结（后续阶段实现）。Generate learning summary (to be implemented in later phase).</p>
+    <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+      <button type="button" class="icon-btn" aria-label="生成总结 Generate summary">📝 Generate Summary</button>
+      <button type="button" class="icon-btn" aria-label="复制总结 Copy summary">📋 Copy</button>
+      <button type="button" class="icon-btn" aria-label="下载总结 Download summary">💾 Download</button>
+    </div>
+    <textarea id="summary-output" rows="4" aria-label="总结输出区域" placeholder="总结文本将在后续阶段生成..."></textarea>
+  </section>
+  <footer>
+    <div class="footer-inner">
+      <p>© 2025 K-Means Interactive Lesson · 作者 Author: OpenAI 助手 · 更新日期 Updated: Phase 1</p>
+      <p>键盘快捷键：Space 运行/暂停 · S 单步 · R 重置 · K 聚焦 k 滑块 · H 帮助 (将在后续阶段实现)。Keyboard shortcuts will be activated in future phases.</p>
+    </div>
+  </footer>
+</div>
+<!-- ===== HTML Markup ===== -->
+<!-- ===== App State & Utils ===== -->
+<!-- Phase 1: JS logic will be added in later phases. -->
+<!-- ===== App.init() ===== -->
+<script>
+  // Phase 1 placeholder module for future initialization.
+  const KMeansApp = (() => {
+    function init() {
+      // Placeholder: real logic will be implemented in Phase 2 and Phase 3.
+      console.info("K-Means Lab Phase 1 layout ready.");
+    }
+    return { init };
+  })();
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (typeof KMeansApp !== "undefined" && KMeansApp.init) {
+      KMeansApp.init();
+    }
+  });
+</script>
+</body>
+</html>
