@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>K-Means 互动课件 | Phase 2 Logic</title>
+<title>K-Means 互动课件 | Phase 3 完成版</title>
 <!-- ===== Styles ===== -->
 <style>
   :root {
@@ -121,12 +121,48 @@
     font-weight: 600;
   }
 
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
     outline: 2px solid var(--focus-outline);
     outline-offset: 2px;
+  }
+
+  .chip {
+    background: var(--tab-bg);
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--border-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .quiz-feedback {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .quiz-feedback.correct {
+    color: #2b8a3e;
+  }
+
+  .quiz-feedback.incorrect {
+    color: #c92a2a;
+  }
+
+  .quiz-result {
+    margin-top: 0.8rem;
+    font-weight: 600;
+    font-size: 0.95rem;
   }
 
   main {
@@ -368,9 +404,13 @@
       <div class="control-block" aria-label="help buttons">
         <label>帮助 Help</label>
         <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-          <button type="button" class="icon-btn" aria-label="帮助说明 Help">❓ Help</button>
-          <button type="button" class="icon-btn" aria-label="恢复默认 Reset defaults">🧹 Reset Defaults</button>
+          <button type="button" id="btn-help" class="icon-btn" aria-label="帮助说明 Help">❓ Help</button>
+          <button type="button" id="btn-reset-defaults" class="icon-btn" aria-label="恢复默认 Reset defaults">🧹 Reset Defaults</button>
         </div>
+      </div>
+      <div class="control-block" aria-label="download image">
+        <label>导出图像 Export Image</label>
+        <button type="button" id="btn-download-top" class="icon-btn" aria-label="导出 PNG Download PNG">🖼 PNG</button>
       </div>
     </div>
   </header>
@@ -417,9 +457,9 @@
           <textarea id="csv-input" rows="6" aria-label="CSV 输入区域"></textarea>
         </div>
         <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
-          <button type="button" class="icon-btn" aria-label="导入 CSV">⬆ Import</button>
-          <button type="button" class="icon-btn" aria-label="导出 PNG">⬇ Export PNG</button>
-          <button type="button" class="icon-btn" aria-label="导出参数 JSON">{} Export JSON</button>
+          <button type="button" id="btn-import-csv" class="icon-btn" aria-label="导入 CSV">⬆ Import</button>
+          <button type="button" id="btn-export-png" class="icon-btn" aria-label="导出 PNG">⬇ Export PNG</button>
+          <button type="button" id="btn-export-json" class="icon-btn" aria-label="导出参数 JSON">{} Export JSON</button>
         </div>
         <p class="hint-text" aria-live="polite">示例：x,y\n1,2\n3,4</p>
       </section>
@@ -530,37 +570,42 @@
             <div class="quiz-question">
               <h4>Q1: 肘部法建议的 k 值通常对应哪里？Where is elbow located?</h4>
               <div class="quiz-options" role="group" aria-label="选项 Options">
-                <label><input type="radio" name="quiz-q1" /> 在下降曲线的拐点 At the elbow point.</label>
-                <label><input type="radio" name="quiz-q1" /> 最大的 k 值 Largest k.</label>
-                <label><input type="radio" name="quiz-q1" /> 曲线起点 Curve start.</label>
+                <label data-correct="true"><input type="radio" name="quiz-q1" /> 在下降曲线的拐点 At the elbow point.</label>
+                <label data-correct="false"><input type="radio" name="quiz-q1" /> 最大的 k 值 Largest k.</label>
+                <label data-correct="false"><input type="radio" name="quiz-q1" /> 曲线起点 Curve start.</label>
               </div>
+              <div class="quiz-feedback" aria-live="polite"></div>
             </div>
             <div class="quiz-question">
               <h4>Q2: 标准化的作用是什么？Why standardize?</h4>
               <div class="quiz-options" role="group">
-                <label><input type="radio" name="quiz-q2" /> 消除量纲影响 Remove scale bias.</label>
-                <label><input type="radio" name="quiz-q2" /> 增加噪声 Increase noise.</label>
-                <label><input type="radio" name="quiz-q2" /> 减少样本数量 Reduce samples.</label>
+                <label data-correct="true"><input type="radio" name="quiz-q2" /> 消除量纲影响 Remove scale bias.</label>
+                <label data-correct="false"><input type="radio" name="quiz-q2" /> 增加噪声 Increase noise.</label>
+                <label data-correct="false"><input type="radio" name="quiz-q2" /> 减少样本数量 Reduce samples.</label>
               </div>
+              <div class="quiz-feedback" aria-live="polite"></div>
             </div>
             <div class="quiz-question">
               <h4>Q3: 对“Moons”数据，k-means 表现如何？How does k-means perform on moons?</h4>
               <div class="quiz-options" role="group">
-                <label><input type="radio" name="quiz-q3" /> 效果较差，簇非凸 Poor due to non-convex clusters.</label>
-                <label><input type="radio" name="quiz-q3" /> 非常好 Very good.</label>
-                <label><input type="radio" name="quiz-q3" /> 无法运行 Cannot run.</label>
+                <label data-correct="true"><input type="radio" name="quiz-q3" /> 效果较差，簇非凸 Poor due to non-convex clusters.</label>
+                <label data-correct="false"><input type="radio" name="quiz-q3" /> 非常好 Very good.</label>
+                <label data-correct="false"><input type="radio" name="quiz-q3" /> 无法运行 Cannot run.</label>
               </div>
+              <div class="quiz-feedback" aria-live="polite"></div>
             </div>
             <div class="quiz-question">
               <h4>Q4: 轮廓系数接近 -1 表示什么？What does silhouette near -1 mean?</h4>
               <div class="quiz-options" role="group">
-                <label><input type="radio" name="quiz-q4" /> 样本更接近其他簇 Point closer to other cluster.</label>
-                <label><input type="radio" name="quiz-q4" /> 聚类完美 Perfect clustering.</label>
-                <label><input type="radio" name="quiz-q4" /> 样本孤立 Isolated point.</label>
+                <label data-correct="true"><input type="radio" name="quiz-q4" /> 样本更接近其他簇 Point closer to other cluster.</label>
+                <label data-correct="false"><input type="radio" name="quiz-q4" /> 聚类完美 Perfect clustering.</label>
+                <label data-correct="false"><input type="radio" name="quiz-q4" /> 样本孤立 Isolated point.</label>
               </div>
+              <div class="quiz-feedback" aria-live="polite"></div>
             </div>
-            <button type="button" class="primary" aria-label="提交测验 Submit quiz">提交 Submit</button>
-            <button type="button" aria-label="重新作答 Retake">重新作答 Retake</button>
+            <button type="button" id="quiz-submit" class="primary" aria-label="提交测验 Submit quiz">提交 Submit</button>
+            <button type="button" id="quiz-retake" aria-label="重新作答 Retake">重新作答 Retake</button>
+            <div id="quiz-result" class="quiz-result" aria-live="polite"></div>
           </section>
         </div>
         <div class="tab-pane" id="tab-fail" role="tabpanel" aria-labelledby="tab-btn-fail">
@@ -595,8 +640,8 @@
   </section>
   <footer>
     <div class="footer-inner">
-      <p>© 2025 K-Means Interactive Lesson · 作者 Author: OpenAI 助手 · 更新日期 Updated: Phase 2</p>
-      <p>键盘快捷键：Space 运行/暂停 · S 单步 · R 重置 · K 聚焦 k 滑块 · H 帮助（即将到来）。Keyboard shortcuts coming soon.</p>
+      <p>© 2025 K-Means Interactive Lesson · 作者 Author: OpenAI 助手 · 更新日期 Updated: Phase 3</p>
+      <p>键盘快捷键：Space 运行/暂停 · S 单步 · R 重置 · K 聚焦 k 滑块 · H 打开概念页 · Q 打开小测 · D 导出 PNG。Keyboard shortcuts ready for quick practice.</p>
     </div>
   </footer>
 </div>
@@ -635,6 +680,29 @@
     ];
 
     const elements = {};
+
+    const quizState = {
+      locked: false,
+    };
+
+    const quizMessages = [
+      {
+        correct: "✅ 正确！拐点代表继续增加簇数收益变小。Correct: the elbow marks diminishing returns for larger k.",
+        incorrect: "❌ 提醒：请关注曲线的拐折点而非端点。Look for the bend in the SSE curve, not the extremes.",
+      },
+      {
+        correct: "✅ 正确！标准化可让各维度同等重要。Standardization equalizes feature scales.",
+        incorrect: "❌ 提醒：标准化是为消除量纲差异，而非增噪或删样。It removes scale bias, not noise or samples.",
+      },
+      {
+        correct: "✅ 正确！Moons 数据非凸，k-means 难以完美划分。Non-convex moons challenge k-means.",
+        incorrect: "❌ 提醒：Moons 并非凸集，k-means 容易切错边界。Remember non-convex shapes break k-means assumptions.",
+      },
+      {
+        correct: "✅ 正确！轮廓接近 -1 表示点更贴近其他簇。It means the point fits another cluster better.",
+        incorrect: "❌ 提醒：轮廓系数接近 1 才理想，-1 暗示分配错误。Scores near 1 are ideal; -1 signals misassignment.",
+      },
+    ];
 
     function createMulberry32(seed) {
       let t = seed >>> 0;
@@ -676,6 +744,74 @@
       elements.btnRandomSeed = document.getElementById("btn-random-seed");
       elements.chipStatus = document.getElementById("chip-status");
       elements.chipConverged = document.getElementById("chip-converged");
+      elements.btnHelp = document.getElementById("btn-help");
+      elements.btnResetDefaults = document.getElementById("btn-reset-defaults");
+      elements.btnDownloadTop = document.getElementById("btn-download-top");
+      elements.btnExportPNG = document.getElementById("btn-export-png");
+      elements.quizSubmit = document.getElementById("quiz-submit");
+      elements.quizRetake = document.getElementById("quiz-retake");
+      elements.quizResult = document.getElementById("quiz-result");
+      elements.quizQuestions = Array.from(document.querySelectorAll(".quiz-question"));
+      elements.tabButtons = Array.from(document.querySelectorAll(".tabs button"));
+      elements.tabPanes = Array.from(document.querySelectorAll(".tab-pane"));
+    }
+
+    function setupTabs() {
+      if (!elements.tabButtons || !elements.tabButtons.length) return;
+      elements.tabButtons.forEach((button) => {
+        button.addEventListener("click", () => activateTab(button));
+        button.addEventListener("keydown", (event) => {
+          const key = event.key.toLowerCase();
+          const currentIndex = elements.tabButtons.indexOf(button);
+          if (key === "arrowright") {
+            event.preventDefault();
+            const next = (currentIndex + 1) % elements.tabButtons.length;
+            activateTab(elements.tabButtons[next]);
+            elements.tabButtons[next].focus();
+          } else if (key === "arrowleft") {
+            event.preventDefault();
+            const prev = (currentIndex - 1 + elements.tabButtons.length) % elements.tabButtons.length;
+            activateTab(elements.tabButtons[prev]);
+            elements.tabButtons[prev].focus();
+          } else if (key === "home") {
+            event.preventDefault();
+            activateTab(elements.tabButtons[0]);
+            elements.tabButtons[0].focus();
+          } else if (key === "end") {
+            event.preventDefault();
+            const lastIdx = elements.tabButtons.length - 1;
+            activateTab(elements.tabButtons[lastIdx]);
+            elements.tabButtons[lastIdx].focus();
+          }
+        });
+      });
+      const activeButton =
+        elements.tabButtons.find((btn) => btn.classList.contains("active")) || elements.tabButtons[0];
+      activateTab(activeButton);
+    }
+
+    function activateTab(button) {
+      if (!button) return;
+      const targetId = button.getAttribute("aria-controls");
+      elements.tabButtons.forEach((btn) => {
+        const isActive = btn === button;
+        btn.classList.toggle("active", isActive);
+        btn.setAttribute("aria-selected", isActive ? "true" : "false");
+        btn.setAttribute("tabindex", isActive ? "0" : "-1");
+      });
+      elements.tabPanes.forEach((pane) => {
+        pane.classList.toggle("active", pane.id === targetId);
+      });
+    }
+
+    function activateTabById(id, focusButton = true) {
+      if (!elements.tabButtons) return null;
+      const button = elements.tabButtons.find((btn) => btn.id === id);
+      if (button) {
+        activateTab(button);
+        if (focusButton) button.focus();
+      }
+      return button || null;
     }
 
     function linkRangeAndNumber(rangeEl, numberEl, onChange) {
@@ -687,6 +823,177 @@
       };
       rangeEl.addEventListener("input", (e) => sync(e.target.value, rangeEl));
       numberEl.addEventListener("change", (e) => sync(e.target.value, numberEl));
+    }
+
+    function setupQuiz() {
+      if (!elements.quizQuestions || !elements.quizQuestions.length) return;
+      resetQuiz();
+      elements.quizQuestions.forEach((question, index) => {
+        question.dataset.quizIndex = index.toString();
+        const inputs = question.querySelectorAll('input[type="radio"]');
+        inputs.forEach((input) => {
+          input.addEventListener("change", () => {
+            if (quizState.locked) return;
+            const feedback = question.querySelector(".quiz-feedback");
+            if (feedback) {
+              feedback.textContent = "";
+              feedback.classList.remove("correct", "incorrect");
+            }
+          });
+        });
+      });
+      if (elements.quizSubmit) {
+        elements.quizSubmit.addEventListener("click", evaluateQuiz);
+      }
+      if (elements.quizRetake) {
+        elements.quizRetake.addEventListener("click", resetQuiz);
+      }
+    }
+
+    function disableQuizInputs(disabled) {
+      if (!elements.quizQuestions) return;
+      elements.quizQuestions.forEach((question) => {
+        const inputs = question.querySelectorAll('input[type="radio"]');
+        inputs.forEach((input) => {
+          input.disabled = disabled;
+        });
+      });
+      if (elements.quizSubmit) elements.quizSubmit.disabled = disabled;
+    }
+
+    function resetQuiz() {
+      quizState.locked = false;
+      if (!elements.quizQuestions) return;
+      elements.quizQuestions.forEach((question) => {
+        const inputs = question.querySelectorAll('input[type="radio"]');
+        inputs.forEach((input) => {
+          input.checked = false;
+          input.disabled = false;
+        });
+        const feedback = question.querySelector(".quiz-feedback");
+        if (feedback) {
+          feedback.textContent = "";
+          feedback.classList.remove("correct", "incorrect");
+        }
+      });
+      if (elements.quizResult) elements.quizResult.textContent = "";
+      if (elements.quizSubmit) elements.quizSubmit.disabled = false;
+    }
+
+    function evaluateQuiz() {
+      if (!elements.quizQuestions) return;
+      let answered = 0;
+      let correct = 0;
+      elements.quizQuestions.forEach((question, index) => {
+        const feedback = question.querySelector(".quiz-feedback");
+        if (feedback) {
+          feedback.textContent = "";
+          feedback.classList.remove("correct", "incorrect");
+        }
+        const selected = question.querySelector('input[type="radio"]:checked');
+        if (!selected) {
+          if (feedback) {
+            feedback.textContent = "请先选择答案。Please select an option.";
+          }
+          return;
+        }
+        answered += 1;
+        const label = selected.closest("label");
+        const isCorrect = label && label.dataset.correct === "true";
+        if (isCorrect) {
+          correct += 1;
+          if (feedback) {
+            feedback.textContent = quizMessages[index].correct;
+            feedback.classList.add("correct");
+          }
+        } else if (feedback) {
+          feedback.textContent = quizMessages[index].incorrect;
+          feedback.classList.add("incorrect");
+        }
+      });
+
+      const total = elements.quizQuestions.length;
+      if (answered < total) {
+        if (elements.quizResult) {
+          elements.quizResult.textContent = "请完成全部题目再提交。Answer every question before submitting.";
+        }
+        return;
+      }
+
+      quizState.locked = true;
+      disableQuizInputs(true);
+
+      if (elements.quizResult) {
+        let encouragement = "再接再厉 Keep practicing!";
+        if (correct === total) encouragement = "满分！Excellent work!";
+        else if (correct === total - 1) encouragement = "非常接近！Almost perfect!";
+        elements.quizResult.textContent = `得分 Score：${correct}/${total} · ${encouragement}`;
+      }
+    }
+
+    function focusQuizTab() {
+      const button = activateTabById("tab-btn-quiz");
+      if (elements.quizQuestions && elements.quizQuestions.length) {
+        const firstInput = elements.quizQuestions[0].querySelector('input[type="radio"]');
+        if (firstInput) firstInput.focus();
+      } else if (button) {
+        button.focus();
+      }
+    }
+
+    function showHelpPanel() {
+      const button = activateTabById("tab-btn-concept");
+      if (button) button.focus();
+      setOverlayText("查看概念页以复习算法步骤。Review the Concept tab for the algorithm steps.", 2200);
+    }
+
+    function exportCanvasAsPNG() {
+      if (!elements.canvas) return;
+      render();
+      const width = elements.canvas.width;
+      const height = elements.canvas.height;
+      if (!width || !height) {
+        setOverlayText("当前画布为空，先生成数据。Canvas empty; generate data first.", 2000);
+        return;
+      }
+      const exportCanvas = document.createElement("canvas");
+      exportCanvas.width = width;
+      exportCanvas.height = height;
+      const ctx = exportCanvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(elements.canvas, 0, 0);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15);
+      link.download = `kmeans-lab-${timestamp}.png`;
+      link.href = exportCanvas.toDataURL("image/png");
+      link.click();
+      setOverlayText("PNG 已导出。PNG saved to downloads.", 1800);
+    }
+
+    function resetDefaults() {
+      if (!elements.datasetSelect) return;
+      elements.datasetSelect.value = "blobs";
+      elements.initSelect.value = "random";
+      elements.distanceSelect.value = "euclidean";
+      elements.maxIterInput.value = 50;
+      elements.pointCountInput.value = 600;
+      elements.noiseSlider.value = 0.05;
+      elements.seedInput.value = 42;
+      elements.speedRange.value = 60;
+      elements.showVoronoi.checked = false;
+      elements.showTrails.checked = true;
+      elements.showLabels.checked = false;
+      elements.showHeat.checked = false;
+      elements.toggleStandardize.checked = false;
+      elements.toggleOutliers.checked = false;
+      elements.kSlider.value = 3;
+      elements.kNumber.value = 3;
+      state.rngSeed = 42;
+      state.delay = 700 - Math.min(650, parseInt(elements.speedRange.value, 10) * 6.2);
+      state.maxIterations = Math.max(1, parseInt(elements.maxIterInput.value, 10) || 1);
+      regenerateDataset();
+      setOverlayText("参数已恢复默认。Defaults restored.", 1600);
     }
 
     function resizeCanvas() {
@@ -779,6 +1086,26 @@
       elements.showLabels.addEventListener("change", () => render());
       elements.showHeat.addEventListener("change", () => render());
 
+      if (elements.btnHelp) {
+        elements.btnHelp.addEventListener("click", () => {
+          showHelpPanel();
+        });
+      }
+
+      if (elements.btnResetDefaults) {
+        elements.btnResetDefaults.addEventListener("click", () => {
+          resetDefaults();
+        });
+      }
+
+      if (elements.btnExportPNG) {
+        elements.btnExportPNG.addEventListener("click", () => exportCanvasAsPNG());
+      }
+
+      if (elements.btnDownloadTop) {
+        elements.btnDownloadTop.addEventListener("click", () => exportCanvasAsPNG());
+      }
+
       elements.canvas.addEventListener("click", (event) => {
         if (elements.initSelect.value !== "manual") return;
         if (!state.points.length) return;
@@ -818,6 +1145,18 @@
           case "k":
             event.preventDefault();
             elements.kSlider.focus();
+            break;
+          case "h":
+            event.preventDefault();
+            showHelpPanel();
+            break;
+          case "q":
+            event.preventDefault();
+            focusQuizTab();
+            break;
+          case "d":
+            event.preventDefault();
+            exportCanvasAsPNG();
             break;
           default:
             break;
@@ -1425,13 +1764,15 @@
 
     function init() {
       cacheDom();
+      setupTabs();
+      setupQuiz();
       attachEvents();
       state.maxIterations = parseInt(elements.maxIterInput.value, 10) || 300;
       state.delay = 700 - Math.min(650, parseInt(elements.speedRange.value, 10) * 6.2 || 0);
       state.rngSeed = parseInt(elements.seedInput.value, 10) || 42;
       resizeCanvas();
       regenerateDataset();
-      console.info("K-Means Lab Phase 2 ready.");
+      console.info("K-Means Lab Phase 3 ready.");
     }
 
     return { init };
