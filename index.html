@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>K-Means 互动课件 | Phase 1 Layout</title>
+<title>K-Means 互动课件 | Phase 2 Logic</title>
 <!-- ===== Styles ===== -->
 <style>
   :root {
@@ -348,17 +348,17 @@
       <div class="control-block" aria-label="run controls">
         <label>运行控制 Run Controls</label>
         <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-          <button type="button" class="icon-btn primary" aria-label="运行 Run">▶ Run</button>
-          <button type="button" class="icon-btn" aria-label="暂停 Pause">⏸ Pause</button>
-          <button type="button" class="icon-btn" aria-label="单步 Step">⏭ Step</button>
-          <button type="button" class="icon-btn" aria-label="重置 Reset">↺ Reset</button>
+          <button type="button" id="btn-run" class="icon-btn primary" aria-label="运行 Run">▶ Run</button>
+          <button type="button" id="btn-pause" class="icon-btn" aria-label="暂停 Pause">⏸ Pause</button>
+          <button type="button" id="btn-step" class="icon-btn" aria-label="单步 Step">⏭ Step</button>
+          <button type="button" id="btn-reset" class="icon-btn" aria-label="重置 Reset">↺ Reset</button>
         </div>
       </div>
       <div class="control-block" aria-label="seed control">
         <label for="seed-input">随机种子 Seed</label>
         <div style="display:flex; gap:0.4rem;">
           <input id="seed-input" type="number" value="42" aria-label="随机种子输入 Seed input" />
-          <button type="button" class="icon-btn" aria-label="随机骰子 Randomize">🎲</button>
+          <button type="button" id="btn-random-seed" class="icon-btn" aria-label="随机骰子 Randomize">🎲</button>
         </div>
       </div>
       <div class="control-block" aria-label="speed control">
@@ -440,13 +440,13 @@
           <p style="margin:0; font-size:0.9rem; color:var(--text-secondary);">拖拽质心、观察分配；Drag centroids and inspect assignments.</p>
         </div>
         <div class="status-chips" style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-          <span class="chip" aria-label="状态">状态：待初始化 · Ready</span>
-          <span class="chip" aria-label="收敛状态">收敛 Convergence：--</span>
+          <span class="chip" id="chip-status" aria-label="状态">状态：待初始化 · Ready</span>
+          <span class="chip" id="chip-converged" aria-label="收敛状态">收敛 Convergence：--</span>
         </div>
       </div>
       <div class="canvas-wrapper" role="presentation">
         <canvas id="cluster-canvas" width="900" height="600" aria-label="k-means 可视化画布"></canvas>
-        <div class="canvas-overlay">Phase 1：此处展示数据点与质心。Phase 1: Visualization canvas placeholder.</div>
+        <div class="canvas-overlay" id="canvas-overlay" aria-live="polite">准备就绪：生成数据后点击运行观察聚类。Ready: generate data then press Run.</div>
       </div>
       <div class="metrics-bar" aria-label="实时指标">
         <div class="metric-card" role="status">
@@ -595,29 +595,850 @@
   </section>
   <footer>
     <div class="footer-inner">
-      <p>© 2025 K-Means Interactive Lesson · 作者 Author: OpenAI 助手 · 更新日期 Updated: Phase 1</p>
-      <p>键盘快捷键：Space 运行/暂停 · S 单步 · R 重置 · K 聚焦 k 滑块 · H 帮助 (将在后续阶段实现)。Keyboard shortcuts will be activated in future phases.</p>
+      <p>© 2025 K-Means Interactive Lesson · 作者 Author: OpenAI 助手 · 更新日期 Updated: Phase 2</p>
+      <p>键盘快捷键：Space 运行/暂停 · S 单步 · R 重置 · K 聚焦 k 滑块 · H 帮助（即将到来）。Keyboard shortcuts coming soon.</p>
     </div>
   </footer>
 </div>
 <!-- ===== HTML Markup ===== -->
 <!-- ===== App State & Utils ===== -->
-<!-- Phase 1: JS logic will be added in later phases. -->
-<!-- ===== App.init() ===== -->
 <script>
-  // Phase 1 placeholder module for future initialization.
   const KMeansApp = (() => {
-    function init() {
-      // Placeholder: real logic will be implemented in Phase 2 and Phase 3.
-      console.info("K-Means Lab Phase 1 layout ready.");
+    const state = {
+      points: [],
+      centroids: [],
+      assignments: [],
+      running: false,
+      iteration: 0,
+      converged: false,
+      delay: 480,
+      trails: [],
+      manualAwait: 0,
+      maxIterations: 300,
+      dpr: window.devicePixelRatio || 1,
+      rngSeed: 42,
+      requestId: null,
+      overlayTimeout: null,
+    };
+
+    const palette = [
+      "#f94144",
+      "#f3722c",
+      "#f8961e",
+      "#f9c74f",
+      "#90be6d",
+      "#43aa8b",
+      "#577590",
+      "#4d908e",
+      "#277da1",
+      "#9c89b8",
+    ];
+
+    const elements = {};
+
+    function createMulberry32(seed) {
+      let t = seed >>> 0;
+      return () => {
+        t += 0x6d2b79f5;
+        let r = Math.imul(t ^ (t >>> 15), 1 | t);
+        r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+      };
     }
+
+    function cacheDom() {
+      elements.canvas = document.getElementById("cluster-canvas");
+      elements.overlay = document.getElementById("canvas-overlay");
+      elements.ctx = elements.canvas.getContext("2d");
+      elements.datasetSelect = document.getElementById("dataset-select");
+      elements.kSlider = document.getElementById("k-slider");
+      elements.kNumber = document.getElementById("k-number");
+      elements.initSelect = document.getElementById("init-select");
+      elements.distanceSelect = document.getElementById("distance-select");
+      elements.maxIterInput = document.getElementById("max-iter");
+      elements.pointCountInput = document.getElementById("point-count");
+      elements.noiseSlider = document.getElementById("noise-slider");
+      elements.seedInput = document.getElementById("seed-input");
+      elements.speedRange = document.getElementById("speed-range");
+      elements.showVoronoi = document.getElementById("show-voronoi");
+      elements.showTrails = document.getElementById("show-trails");
+      elements.showLabels = document.getElementById("show-labels");
+      elements.showHeat = document.getElementById("show-heat");
+      elements.toggleStandardize = document.getElementById("toggle-standardize");
+      elements.toggleOutliers = document.getElementById("toggle-outliers");
+      elements.metricSSE = document.getElementById("metric-sse");
+      elements.metricSilhouette = document.getElementById("metric-silhouette");
+      elements.metricIteration = document.getElementById("metric-iteration");
+      elements.btnRun = document.getElementById("btn-run");
+      elements.btnPause = document.getElementById("btn-pause");
+      elements.btnStep = document.getElementById("btn-step");
+      elements.btnReset = document.getElementById("btn-reset");
+      elements.btnRandomSeed = document.getElementById("btn-random-seed");
+      elements.chipStatus = document.getElementById("chip-status");
+      elements.chipConverged = document.getElementById("chip-converged");
+    }
+
+    function linkRangeAndNumber(rangeEl, numberEl, onChange) {
+      const sync = (value, source) => {
+        const v = Math.min(parseInt(rangeEl.max, 10), Math.max(parseInt(rangeEl.min, 10), parseInt(value, 10)));
+        if (source !== rangeEl) rangeEl.value = v;
+        if (source !== numberEl) numberEl.value = v;
+        if (typeof onChange === "function") onChange(v);
+      };
+      rangeEl.addEventListener("input", (e) => sync(e.target.value, rangeEl));
+      numberEl.addEventListener("change", (e) => sync(e.target.value, numberEl));
+    }
+
+    function resizeCanvas() {
+      const rect = elements.canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      if (!rect.width || !rect.height) return;
+      elements.canvas.width = rect.width * dpr;
+      elements.canvas.height = rect.height * dpr;
+      state.canvasWidth = rect.width;
+      state.canvasHeight = rect.height;
+      state.dpr = dpr;
+      elements.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      render();
+    }
+
+    function attachEvents() {
+      window.addEventListener("resize", () => {
+        clearTimeout(state.overlayTimeout);
+        state.overlayTimeout = setTimeout(resizeCanvas, 200);
+      });
+
+      linkRangeAndNumber(elements.kSlider, elements.kNumber, () => {
+        if (elements.initSelect.value !== "manual") {
+          initializeCentroids();
+          render();
+        } else {
+          prepareManualPlacement();
+        }
+        updateStatusChip();
+      });
+
+      elements.datasetSelect.addEventListener("change", () => {
+        regenerateDataset();
+      });
+
+      elements.initSelect.addEventListener("change", () => {
+        if (elements.initSelect.value === "manual") {
+          prepareManualPlacement();
+        } else {
+          initializeCentroids();
+          render();
+        }
+      });
+
+      elements.distanceSelect.addEventListener("change", () => {
+        render();
+      });
+
+      elements.maxIterInput.addEventListener("change", () => {
+        state.maxIterations = Math.max(1, parseInt(elements.maxIterInput.value, 10) || 1);
+      });
+
+      elements.pointCountInput.addEventListener("change", () => regenerateDataset());
+      elements.noiseSlider.addEventListener("input", () => regenerateDataset());
+      elements.toggleStandardize.addEventListener("change", () => regenerateDataset());
+      elements.toggleOutliers.addEventListener("change", () => regenerateDataset());
+
+      elements.btnRun.addEventListener("click", () => setRunning(true));
+      elements.btnPause.addEventListener("click", () => setRunning(false));
+      elements.btnStep.addEventListener("click", () => {
+        if (!ensureCentroidsReady()) return;
+        performIteration();
+        render();
+      });
+      elements.btnReset.addEventListener("click", () => regenerateDataset());
+      elements.btnRandomSeed.addEventListener("click", () => {
+        const newSeed = Math.floor(Math.random() * 100000);
+        elements.seedInput.value = newSeed;
+        state.rngSeed = newSeed;
+        regenerateDataset();
+      });
+
+      elements.seedInput.addEventListener("change", () => {
+        const seedValue = parseInt(elements.seedInput.value, 10);
+        if (!Number.isFinite(seedValue)) {
+          elements.seedInput.value = state.rngSeed;
+          return;
+        }
+        state.rngSeed = seedValue;
+        regenerateDataset();
+      });
+
+      elements.speedRange.addEventListener("input", () => {
+        const value = parseInt(elements.speedRange.value, 10);
+        state.delay = 700 - Math.min(650, value * 6.2);
+      });
+
+      elements.showVoronoi.addEventListener("change", () => render());
+      elements.showTrails.addEventListener("change", () => render());
+      elements.showLabels.addEventListener("change", () => render());
+      elements.showHeat.addEventListener("change", () => render());
+
+      elements.canvas.addEventListener("click", (event) => {
+        if (elements.initSelect.value !== "manual") return;
+        if (!state.points.length) return;
+        const rect = elements.canvas.getBoundingClientRect();
+        const nx = (event.clientX - rect.left) / rect.width;
+        const ny = (event.clientY - rect.top) / rect.height;
+        if (state.centroids.length < getK()) {
+          state.centroids.push({ x: nx, y: ny, trail: [] });
+          state.trails.push([{ x: nx, y: ny }]);
+          state.manualAwait = getK() - state.centroids.length;
+          updateOverlay();
+          render();
+        }
+        if (state.centroids.length === getK()) {
+          elements.overlay.dataset.manual = "done";
+          setOverlayText("质心已放置，可运行算法。Centroids placed, press Run.");
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.target && ["INPUT", "TEXTAREA"].includes(event.target.tagName)) return;
+        switch (event.key.toLowerCase()) {
+          case " ":
+            event.preventDefault();
+            setRunning(!state.running);
+            break;
+          case "s":
+            event.preventDefault();
+            setRunning(false);
+            performIteration();
+            render();
+            break;
+          case "r":
+            event.preventDefault();
+            regenerateDataset();
+            break;
+          case "k":
+            event.preventDefault();
+            elements.kSlider.focus();
+            break;
+          default:
+            break;
+        }
+      });
+    }
+
+    function getK() {
+      return Math.max(1, parseInt(elements.kSlider.value, 10) || 1);
+    }
+
+    function regenerateDataset() {
+      setRunning(false);
+      const datasetType = elements.datasetSelect.value;
+      const count = Math.max(10, parseInt(elements.pointCountInput.value, 10) || 300);
+      const noise = parseFloat(elements.noiseSlider.value) || 0;
+      const rng = createMulberry32(state.rngSeed);
+      let points = [];
+      if (datasetType === "blobs") points = generateBlobs(count, noise, rng);
+      else if (datasetType === "circles") points = generateCircles(count, noise, rng);
+      else if (datasetType === "moons") points = generateMoons(count, noise, rng);
+      else if (datasetType === "grid") points = generateGrid(count, noise, rng);
+      else points = generateCustom(count, noise, rng);
+
+      if (elements.toggleStandardize.checked) {
+        points = standardizePoints(points);
+      } else {
+        points = normalizePoints(points);
+      }
+
+      if (elements.toggleOutliers.checked) {
+        const outliers = Math.max(1, Math.floor(points.length * 0.05));
+        for (let i = 0; i < outliers; i += 1) {
+          points.push({
+            x: rng() * 1.4 - 0.2,
+            y: rng() * 1.4 - 0.2,
+          });
+        }
+      }
+
+      state.points = points.map((p) => ({ x: p.x, y: p.y }));
+      state.assignments = new Array(state.points.length).fill(-1);
+      state.iteration = 0;
+      state.converged = false;
+      state.trails = [];
+      elements.metricIteration.textContent = "0";
+      elements.metricSSE.textContent = "--";
+      elements.metricSilhouette.textContent = "--";
+      elements.chipConverged.textContent = "收敛 Convergence：--";
+      updateStatusChip();
+      updateOverlay();
+      initializeCentroids();
+      render();
+    }
+
+    function standardizePoints(points) {
+      if (!points.length) return points;
+      const mean = points.reduce(
+        (acc, p) => {
+          acc.x += p.x;
+          acc.y += p.y;
+          return acc;
+        },
+        { x: 0, y: 0 }
+      );
+      mean.x /= points.length;
+      mean.y /= points.length;
+      let sumSqX = 0;
+      let sumSqY = 0;
+      points.forEach((p) => {
+        sumSqX += (p.x - mean.x) ** 2;
+        sumSqY += (p.y - mean.y) ** 2;
+      });
+      const stdX = Math.sqrt(sumSqX / points.length) || 1;
+      const stdY = Math.sqrt(sumSqY / points.length) || 1;
+      const standardized = points.map((p) => ({
+        x: (p.x - mean.x) / stdX,
+        y: (p.y - mean.y) / stdY,
+      }));
+      return normalizePoints(standardized);
+    }
+
+    function normalizePoints(points) {
+      if (!points.length) return points;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      points.forEach((p) => {
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+      });
+      const spanX = maxX - minX || 1;
+      const spanY = maxY - minY || 1;
+      return points.map((p) => ({
+        x: (p.x - minX) / spanX,
+        y: (p.y - minY) / spanY,
+      }));
+    }
+
+    function initializeCentroids() {
+      state.centroids = [];
+      state.trails = [];
+      state.manualAwait = 0;
+      const k = getK();
+      if (!state.points.length) return;
+      if (elements.initSelect.value === "manual") {
+        prepareManualPlacement();
+        render();
+        return;
+      }
+      const rng = createMulberry32(state.rngSeed + 99);
+      if (elements.initSelect.value === "kpp" && state.points.length) {
+        const chosen = [];
+        const distances = new Array(state.points.length).fill(Infinity);
+        chosen.push(randomPoint(rng));
+        for (let c = 1; c < k; c += 1) {
+          for (let i = 0; i < state.points.length; i += 1) {
+            const d = euclideanDistance(state.points[i], chosen[c - 1]);
+            if (d < distances[i]) distances[i] = d;
+          }
+          const sum = distances.reduce((acc, val) => acc + val, 0);
+          let threshold = rng() * sum;
+          let nextIndex = 0;
+          for (let i = 0; i < distances.length; i += 1) {
+            threshold -= distances[i];
+            if (threshold <= 0) {
+              nextIndex = i;
+              break;
+            }
+          }
+          chosen.push({ ...state.points[nextIndex] });
+        }
+        state.centroids = chosen.map((p) => ({ x: p.x, y: p.y, trail: [] }));
+      } else {
+        const used = new Set();
+        while (state.centroids.length < k) {
+          const idx = Math.floor(rng() * state.points.length);
+          if (used.has(idx)) continue;
+          used.add(idx);
+          const point = state.points[idx];
+          state.centroids.push({ x: point.x, y: point.y, trail: [] });
+        }
+      }
+      state.trails = state.centroids.map((c) => [{ x: c.x, y: c.y }]);
+      updateOverlay();
+    }
+
+    function randomPoint(rng) {
+      const idx = Math.floor(rng() * state.points.length);
+      return { ...state.points[idx] };
+    }
+
+    function prepareManualPlacement() {
+      state.centroids = [];
+      state.trails = [];
+      state.manualAwait = getK();
+      setRunning(false);
+      setOverlayText(`手动放置质心：需选择 ${state.manualAwait} 个点位。Click ${state.manualAwait} times to place centroids.`);
+    }
+
+    function ensureCentroidsReady() {
+      if (!state.points.length) return false;
+      if (state.centroids.length === getK()) return true;
+      if (elements.initSelect.value === "manual") {
+        setOverlayText("请先在画布上放置全部质心。Place all centroids before running.");
+        return false;
+      }
+      initializeCentroids();
+      return state.centroids.length === getK();
+    }
+
+    function setRunning(running) {
+      if (running && !ensureCentroidsReady()) return;
+      state.running = running;
+      if (running) {
+        state.lastTimestamp = 0;
+        loop(performance.now());
+        setOverlayText("运行中…点击暂停可停止。Running… press Pause to stop.", 2000);
+      } else if (state.requestId) {
+        cancelAnimationFrame(state.requestId);
+        state.requestId = null;
+      }
+      updateStatusChip();
+      updateOverlay();
+      render();
+    }
+
+    function loop(timestamp) {
+      if (!state.running) return;
+      if (!state.lastTimestamp) state.lastTimestamp = timestamp;
+      const elapsed = timestamp - state.lastTimestamp;
+      if (elapsed >= state.delay) {
+        state.lastTimestamp = timestamp;
+        performIteration();
+      }
+      render();
+      state.requestId = requestAnimationFrame(loop);
+    }
+
+    function performIteration() {
+      if (!state.points.length || !state.centroids.length) return;
+      state.iteration += 1;
+      const assignments = [];
+      const counts = Array(state.centroids.length).fill(0);
+      const sums = Array(state.centroids.length)
+        .fill(0)
+        .map(() => ({ x: 0, y: 0 }));
+      for (let i = 0; i < state.points.length; i += 1) {
+        const point = state.points[i];
+        let bestDist = Infinity;
+        let bestIdx = 0;
+        for (let c = 0; c < state.centroids.length; c += 1) {
+          const dist = distance(point, state.centroids[c]);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = c;
+          }
+        }
+        assignments[i] = bestIdx;
+        counts[bestIdx] += 1;
+        sums[bestIdx].x += point.x;
+        sums[bestIdx].y += point.y;
+      }
+
+      handleEmptyClusters(counts, assignments, sums);
+
+      const epsilon = 1e-4;
+      let maxShift = 0;
+      for (let c = 0; c < state.centroids.length; c += 1) {
+        const centroid = state.centroids[c];
+        const count = counts[c];
+        if (count === 0) continue;
+        const newX = sums[c].x / count;
+        const newY = sums[c].y / count;
+        const shift = Math.sqrt((centroid.x - newX) ** 2 + (centroid.y - newY) ** 2);
+        if (elements.showTrails.checked) {
+          const trail = state.trails[c];
+          trail.push({ x: newX, y: newY });
+          if (trail.length > 50) trail.shift();
+        }
+        centroid.x = newX;
+        centroid.y = newY;
+        if (shift > maxShift) maxShift = shift;
+      }
+
+      state.assignments = assignments;
+      const sse = computeSSE(assignments);
+      const silhouette = computeSilhouette(assignments);
+      state.converged = maxShift < epsilon || state.iteration >= state.maxIterations;
+      if (state.converged) {
+        setRunning(false);
+        elements.chipConverged.textContent = `收敛 Convergence：${maxShift < epsilon ? "是 Yes" : "达到阈值 Max"}`;
+      }
+      elements.metricIteration.textContent = state.iteration.toString();
+      elements.metricSSE.textContent = sse.toFixed(2);
+      elements.metricSilhouette.textContent = Number.isFinite(silhouette)
+        ? silhouette.toFixed(3)
+        : "--";
+      updateStatusChip();
+    }
+
+    function handleEmptyClusters(counts, assignments, sums) {
+      const epsilon = 1e-6;
+      for (let c = 0; c < counts.length; c += 1) {
+        if (counts[c] > 0) continue;
+        let farthestIdx = -1;
+        let farthestDist = -Infinity;
+        for (let i = 0; i < state.points.length; i += 1) {
+          const minDist = state.centroids.reduce((min, centroid, idx) => {
+            if (idx === c) return min;
+            const d = distance(state.points[i], centroid);
+            return d < min ? d : min;
+          }, Infinity);
+          if (minDist > farthestDist + epsilon) {
+            farthestDist = minDist;
+            farthestIdx = i;
+          }
+        }
+        if (farthestIdx === -1) continue;
+        const point = state.points[farthestIdx];
+        const prev = assignments[farthestIdx];
+        if (prev >= 0 && prev !== c) {
+          counts[prev] = Math.max(0, counts[prev] - 1);
+          sums[prev].x -= point.x;
+          sums[prev].y -= point.y;
+        }
+        state.centroids[c].x = point.x;
+        state.centroids[c].y = point.y;
+        state.trails[c] = [{ x: point.x, y: point.y }];
+        assignments[farthestIdx] = c;
+        counts[c] = 1;
+        sums[c].x = point.x;
+        sums[c].y = point.y;
+        c = -1; // restart to ensure cascading empties handled
+      }
+    }
+
+    function computeSSE(assignments) {
+      let total = 0;
+      for (let i = 0; i < state.points.length; i += 1) {
+        const clusterIdx = assignments[i];
+        if (clusterIdx < 0) continue;
+        const centroid = state.centroids[clusterIdx];
+        total += euclideanDistance(state.points[i], centroid) ** 2;
+      }
+      return total;
+    }
+
+    function computeSilhouette(assignments) {
+      const n = state.points.length;
+      if (!n || state.centroids.length < 2) return NaN;
+      const clusters = Array.from({ length: state.centroids.length }, () => []);
+      for (let i = 0; i < n; i += 1) {
+        const clusterIdx = assignments[i];
+        if (clusterIdx >= 0) clusters[clusterIdx].push(i);
+      }
+      const sampleSize = Math.min(300, n);
+      const rng = createMulberry32(state.rngSeed + state.iteration + 7);
+      let sumSilhouette = 0;
+      for (let s = 0; s < sampleSize; s += 1) {
+        const idx = Math.floor(rng() * n);
+        const clusterIdx = assignments[idx];
+        if (clusterIdx < 0) continue;
+        const ownCluster = clusters[clusterIdx];
+        const point = state.points[idx];
+        let a = 0;
+        if (ownCluster.length > 1) {
+          let total = 0;
+          for (let j = 0; j < ownCluster.length; j += 1) {
+            const otherIdx = ownCluster[j];
+            if (otherIdx === idx) continue;
+            total += euclideanDistance(point, state.points[otherIdx]);
+          }
+          a = total / Math.max(1, ownCluster.length - 1);
+        }
+        let b = Infinity;
+        for (let c = 0; c < clusters.length; c += 1) {
+          if (c === clusterIdx || clusters[c].length === 0) continue;
+          let total = 0;
+          for (let j = 0; j < clusters[c].length; j += 1) {
+            total += euclideanDistance(point, state.points[clusters[c][j]]);
+          }
+          const avg = total / clusters[c].length;
+          if (avg < b) b = avg;
+        }
+        if (!Number.isFinite(b)) continue;
+        const denom = Math.max(a, b);
+        const sVal = denom === 0 ? 0 : (b - a) / denom;
+        sumSilhouette += sVal;
+      }
+      return sumSilhouette / sampleSize;
+    }
+
+    function distance(a, b) {
+      return elements.distanceSelect.value === "manhattan"
+        ? Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+        : Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function euclideanDistance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function updateStatusChip() {
+      elements.chipStatus.textContent = `状态 Status：${state.running ? "运行中 Running" : "已就绪 Ready"}`;
+    }
+
+    function setOverlayText(text, timeout = 0) {
+      if (!elements.overlay) return;
+      elements.overlay.textContent = text;
+      elements.overlay.style.opacity = 1;
+      if (timeout > 0) {
+        clearTimeout(state.overlayTimeout);
+        state.overlayTimeout = setTimeout(() => {
+          elements.overlay.style.opacity = 0;
+        }, timeout);
+      }
+    }
+
+    function updateOverlay() {
+      if (!elements.overlay) return;
+      if (!state.points.length) {
+        setOverlayText("未生成数据。检查设置后重试。No dataset yet, adjust parameters.");
+        return;
+      }
+      if (elements.initSelect.value === "manual") {
+        if (state.centroids.length < getK()) {
+          setOverlayText(`手动放置质心：剩余 ${getK() - state.centroids.length} 个。Place ${
+            getK() - state.centroids.length
+          } centroids.`);
+        } else {
+          setOverlayText("质心已放置，可运行算法。Centroids ready.", 2000);
+        }
+      } else if (state.running) {
+        setOverlayText("运行中… Running…", 0);
+      } else {
+        setOverlayText("点击运行或单步查看聚类过程。Press Run or Step to iterate.", 2200);
+      }
+    }
+
+    function render() {
+      if (!elements.ctx || !state.canvasWidth || !state.canvasHeight) return;
+      const ctx = elements.ctx;
+      ctx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+      if (elements.showHeat.checked && state.centroids.length) drawHeatmap(ctx);
+      if (elements.showVoronoi.checked && state.centroids.length) drawVoronoi(ctx);
+      drawPoints(ctx);
+      if (elements.showTrails.checked) drawTrails(ctx);
+      drawCentroids(ctx);
+    }
+
+    function drawPoints(ctx) {
+      const radius = Math.max(2, Math.min(state.canvasWidth, state.canvasHeight) * 0.007);
+      ctx.save();
+      ctx.lineWidth = 0;
+      for (let i = 0; i < state.points.length; i += 1) {
+        const p = state.points[i];
+        const assignment = state.assignments[i];
+        const color = assignment >= 0 ? palette[assignment % palette.length] : "#666";
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(p.x * state.canvasWidth, p.y * state.canvasHeight, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawCentroids(ctx) {
+      const size = Math.max(8, Math.min(state.canvasWidth, state.canvasHeight) * 0.02);
+      ctx.save();
+      ctx.lineWidth = 2;
+      for (let i = 0; i < state.centroids.length; i += 1) {
+        const centroid = state.centroids[i];
+        const color = palette[i % palette.length];
+        const x = centroid.x * state.canvasWidth;
+        const y = centroid.y * state.canvasHeight;
+        ctx.fillStyle = color;
+        ctx.strokeStyle = "#1f2933";
+        ctx.beginPath();
+        ctx.moveTo(x, y - size);
+        ctx.lineTo(x + size * 0.7, y + size * 0.7);
+        ctx.lineTo(x - size * 0.7, y + size * 0.7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        if (elements.showLabels.checked) {
+          ctx.font = "14px/1.2 \"Segoe UI\", sans-serif";
+          ctx.fillStyle = "#1e1e2f";
+          ctx.fillText(`C${i + 1}`, x + size * 0.8, y - size * 0.6);
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawTrails(ctx) {
+      ctx.save();
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([4, 4]);
+      for (let i = 0; i < state.trails.length; i += 1) {
+        const trail = state.trails[i];
+        if (!trail || trail.length < 2) continue;
+        const color = palette[i % palette.length];
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        for (let t = 0; t < trail.length; t += 1) {
+          const pos = trail[t];
+          const px = pos.x * state.canvasWidth;
+          const py = pos.y * state.canvasHeight;
+          if (t === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.setLineDash([]);
+    }
+
+    function drawVoronoi(ctx) {
+      const step = 24;
+      const width = state.canvasWidth;
+      const height = state.canvasHeight;
+      for (let y = 0; y <= height; y += step) {
+        for (let x = 0; x <= width; x += step) {
+          let bestIdx = 0;
+          let bestDist = Infinity;
+          const point = { x: x / width, y: y / height };
+          for (let c = 0; c < state.centroids.length; c += 1) {
+            const dist = distance(point, state.centroids[c]);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestIdx = c;
+            }
+          }
+          ctx.fillStyle = `${palette[bestIdx % palette.length]}20`;
+          ctx.fillRect(x - step / 2, y - step / 2, step, step);
+        }
+      }
+    }
+
+    function drawHeatmap(ctx) {
+      const step = 18;
+      const width = state.canvasWidth;
+      const height = state.canvasHeight;
+      for (let y = 0; y <= height; y += step) {
+        for (let x = 0; x <= width; x += step) {
+          const point = { x: x / width, y: y / height };
+          let minDist = Infinity;
+          for (let c = 0; c < state.centroids.length; c += 1) {
+            const dist = distance(point, state.centroids[c]);
+            if (dist < minDist) minDist = dist;
+          }
+          const alpha = Math.max(0, 1 - minDist * 1.5);
+          ctx.fillStyle = `rgba(76, 110, 245, ${alpha * 0.25})`;
+          ctx.fillRect(x - step / 2, y - step / 2, step, step);
+        }
+      }
+    }
+
+    function generateBlobs(count, noise, rng) {
+      const centers = [
+        { x: 0.3, y: 0.3 },
+        { x: 0.7, y: 0.35 },
+        { x: 0.45, y: 0.75 },
+        { x: 0.75, y: 0.7 },
+      ];
+      const points = [];
+      for (let i = 0; i < count; i += 1) {
+        const c = centers[Math.floor(rng() * centers.length)];
+        const spread = 0.12 + noise * 0.4;
+        points.push({
+          x: c.x + (rng() - 0.5) * spread,
+          y: c.y + (rng() - 0.5) * spread,
+        });
+      }
+      return points;
+    }
+
+    function generateCircles(count, noise, rng) {
+      const points = [];
+      for (let i = 0; i < count; i += 1) {
+        const outer = i % 2 === 0;
+        const radius = outer ? 0.38 : 0.2;
+        const angle = rng() * Math.PI * 2;
+        const jitter = noise * 0.3;
+        const r = radius + (rng() - 0.5) * jitter;
+        points.push({
+          x: 0.5 + Math.cos(angle) * r,
+          y: 0.5 + Math.sin(angle) * r,
+        });
+      }
+      return points;
+    }
+
+    function generateMoons(count, noise, rng) {
+      const points = [];
+      const half = Math.floor(count / 2);
+      for (let i = 0; i < half; i += 1) {
+        const angle = Math.PI * (i / half) + rng() * noise * 1.2;
+        points.push({
+          x: 0.25 + Math.cos(angle) * 0.3 + rng() * noise * 0.3,
+          y: 0.45 + Math.sin(angle) * 0.2 + rng() * noise * 0.3,
+        });
+      }
+      for (let i = 0; i < count - half; i += 1) {
+        const angle = Math.PI * (i / half) + rng() * noise * 1.2;
+        points.push({
+          x: 0.55 + Math.cos(Math.PI - angle) * 0.3 + rng() * noise * 0.3,
+          y: 0.55 - Math.sin(Math.PI - angle) * 0.2 + rng() * noise * 0.3,
+        });
+      }
+      return points;
+    }
+
+    function generateGrid(count, noise, rng) {
+      const size = Math.max(2, Math.floor(Math.sqrt(count)));
+      const points = [];
+      for (let i = 0; i < size; i += 1) {
+        for (let j = 0; j < size; j += 1) {
+          points.push({
+            x: (i + 0.5 + (rng() - 0.5) * noise) / size,
+            y: (j + 0.5 + (rng() - 0.5) * noise) / size,
+          });
+        }
+      }
+      while (points.length > count) points.pop();
+      return points;
+    }
+
+    function generateCustom(count, noise, rng) {
+      const points = [];
+      for (let i = 0; i < count; i += 1) {
+        points.push({ x: rng(), y: rng() });
+      }
+      if (noise > 0.01) {
+        const extra = Math.floor(count * noise * 0.5);
+        for (let i = 0; i < extra; i += 1) {
+          points.push({ x: rng(), y: rng() });
+        }
+      }
+      return points;
+    }
+
+    function init() {
+      cacheDom();
+      attachEvents();
+      state.maxIterations = parseInt(elements.maxIterInput.value, 10) || 300;
+      state.delay = 700 - Math.min(650, parseInt(elements.speedRange.value, 10) * 6.2 || 0);
+      state.rngSeed = parseInt(elements.seedInput.value, 10) || 42;
+      resizeCanvas();
+      regenerateDataset();
+      console.info("K-Means Lab Phase 2 ready.");
+    }
+
     return { init };
   })();
 
   document.addEventListener("DOMContentLoaded", () => {
-    if (typeof KMeansApp !== "undefined" && KMeansApp.init) {
-      KMeansApp.init();
-    }
+    KMeansApp.init();
   });
 </script>
 </body>
